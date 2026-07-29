@@ -1,0 +1,15 @@
+# Built binary — anchored to repo root so it never masks a source path.
+/otel-trace-replay
+
+# Go build & test artifacts
+/dist/
+*.out
+coverage.txt
+
+# Editor/OS noise
+.DS_Store
+*.swp
+
+# Always track fixtures and test data.
+!examples/**
+!**/testdata/**

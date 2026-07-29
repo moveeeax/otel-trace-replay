@@ -1,0 +1,55 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        go-version: ["1.22.x", "1.23.x", "1.24.x"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go-version }}
+      - name: Verify formatting
+        run: test -z "$(gofmt -l .)"
+      - name: Vet
+        run: go vet ./...
+      - name: Test
+        run: go test -race ./...
+      - name: Build
+        run: go build -o /tmp/otel-trace-replay .
+
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.24.x"
+      - name: Build
+        run: go build -o /tmp/otel-trace-replay .
+      - name: Dry-run the recorded example trace
+        run: /tmp/otel-trace-replay --file examples/trace.json --dry-run
+      - name: Replay a burst against a throwaway local collector
+        run: |
+          set -euo pipefail
+          docker run -d --name otelcol -p 4317:4317 \
+            -v "$PWD/examples/collector-config.yaml:/etc/otelcol/config.yaml" \
+            otel/opentelemetry-collector:0.109.0 --config /etc/otelcol/config.yaml
+          for i in $(seq 1 30); do
+            if docker logs otelcol 2>&1 | grep -q "Everything is ready"; then break; fi
+            sleep 1
+          done
+          /tmp/otel-trace-replay --file examples/trace.json --endpoint localhost:4317 --scale 0 --rewrite-time
+          sleep 2
+          docker logs otelcol 2>&1 | grep -q "charge-card" || (echo "collector did not receive replayed spans" && docker logs otelcol && exit 1)
+          docker rm -f otelcol

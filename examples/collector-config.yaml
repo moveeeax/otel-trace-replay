@@ -1,0 +1,24 @@
+# Minimal OpenTelemetry Collector config for local dashboard development.
+# Run it with:
+#   docker run --rm -p 4317:4317 \
+#     -v "$PWD/examples/collector-config.yaml:/etc/otelcol/config.yaml" \
+#     otel/opentelemetry-collector:latest
+#
+# It accepts OTLP/gRPC on :4317 and logs every received span so you can confirm
+# otel-trace-replay is delivering the recorded trace. Point a real backend
+# (Tempo, Jaeger, etc.) at the same pipeline to build dashboards.
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+
+exporters:
+  debug:
+    verbosity: detailed
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      exporters: [debug]
