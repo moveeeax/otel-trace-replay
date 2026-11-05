@@ -1,7 +1,7 @@
 # otel-trace-replay
 
 [![ci](https://github.com/moveeeax/otel-trace-replay/actions/workflows/ci.yml/badge.svg)](https://github.com/moveeeax/otel-trace-replay/actions/workflows/ci.yml)
-[![Go](https://img.shields.io/badge/Go-1.22+-00ADD8?logo=go&logoColor=white)](https://go.dev)
+[![Go](https://img.shields.io/badge/Go-1.26%20%7C%201.27-00ADD8?logo=go&logoColor=white)](https://go.dev)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 Replay a recorded OpenTelemetry trace into a local collector, so you can build and
@@ -69,7 +69,7 @@ A minimal collector that accepts OTLP/gRPC on `:4317` and logs received spans li
 ```
 docker run --rm -p 4317:4317 \
   -v "$PWD/examples/collector-config.yaml:/etc/otelcol/config.yaml" \
-  otel/opentelemetry-collector:latest --config /etc/otelcol/config.yaml
+  otel/opentelemetry-collector:0.164.0 --config /etc/otelcol/config.yaml
 ```
 
 Point its `traces` pipeline at Tempo/Jaeger instead of `debug` to develop real dashboards.
