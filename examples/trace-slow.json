@@ -1,0 +1,76 @@
+{
+  "resourceSpans": [
+    {
+      "resource": {
+        "attributes": [
+          {"key": "service.name", "value": {"stringValue": "checkout"}},
+          {"key": "deployment.environment", "value": {"stringValue": "staging"}}
+        ]
+      },
+      "scopeSpans": [
+        {
+          "scope": {"name": "checkout/api", "version": "1.4.0"},
+          "spans": [
+            {
+              "traceId": "7c1a2f0e9d8b4c3a2e1f0a9b8c7d6e5f",
+              "spanId": "eee19b7ec3c1b174",
+              "name": "POST /checkout",
+              "kind": 2,
+              "startTimeUnixNano": "1700000000000000000",
+              "endTimeUnixNano": "1700000001230000000",
+              "attributes": [
+                {"key": "http.method", "value": {"stringValue": "POST"}},
+                {"key": "http.route", "value": {"stringValue": "/checkout"}},
+                {"key": "http.status_code", "value": {"intValue": "200"}}
+              ],
+              "status": {"code": 1}
+            },
+            {
+              "traceId": "7c1a2f0e9d8b4c3a2e1f0a9b8c7d6e5f",
+              "spanId": "aaa19b7ec3c1b201",
+              "parentSpanId": "eee19b7ec3c1b174",
+              "name": "validate-cart",
+              "kind": 1,
+              "startTimeUnixNano": "1700000000050000000",
+              "endTimeUnixNano": "1700000000180000000",
+              "status": {"code": 1}
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "resource": {
+        "attributes": [
+          {"key": "service.name", "value": {"stringValue": "payments"}},
+          {"key": "deployment.environment", "value": {"stringValue": "staging"}}
+        ]
+      },
+      "scopeSpans": [
+        {
+          "scope": {"name": "payments/charge", "version": "2.1.0"},
+          "spans": [
+            {
+              "traceId": "7c1a2f0e9d8b4c3a2e1f0a9b8c7d6e5f",
+              "spanId": "bbb19b7ec3c1b310",
+              "parentSpanId": "eee19b7ec3c1b174",
+              "name": "charge-card",
+              "kind": 3,
+              "startTimeUnixNano": "1700000000200000000",
+              "endTimeUnixNano": "1700000001160000000",
+              "attributes": [
+                {"key": "payment.provider", "value": {"stringValue": "stripe"}},
+                {"key": "payment.amount_cents", "value": {"intValue": "4999"}}
+              ],
+              "events": [
+                {"name": "provider.request", "timeUnixNano": "1700000000210000000"},
+                {"name": "provider.response", "timeUnixNano": "1700000001150000000"}
+              ],
+              "status": {"code": 1}
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

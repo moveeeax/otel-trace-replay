@@ -21,6 +21,7 @@ type Options struct {
 	Times       int     // number of passes; ignored when Loop is set
 	Loop        bool    // replay forever until the context is cancelled
 	RewriteTime bool    // shift embedded timestamps so the trace starts "now"
+	NewIDs      bool    // give every pass fresh trace and span IDs
 
 	Sleep func(context.Context, time.Duration) error
 	Now   func() time.Time
@@ -58,13 +59,20 @@ func Run(ctx context.Context, td *tracepb.TracesData, exp Exporter, opts Options
 		if opts.RewriteTime && len(items) > 0 {
 			delta = now().UnixNano() - int64(items[0].Span.GetStartTimeUnixNano())
 		}
+		var ids *IDMap
+		if opts.NewIDs {
+			var err error
+			if ids, err = NewIDMap(items); err != nil {
+				return stats, err
+			}
+		}
 		prev := time.Duration(0)
 		for _, s := range sched {
 			if err := sleep(ctx, s.Delay-prev); err != nil {
 				return stats, err
 			}
 			prev = s.Delay
-			if err := exp.Export(ctx, buildRequest(s.Item, delta)); err != nil {
+			if err := exp.Export(ctx, buildRequest(s.Item, delta, ids)); err != nil {
 				return stats, err
 			}
 			stats.Spans++
@@ -89,11 +97,18 @@ func waitFor(ctx context.Context, d time.Duration) error {
 }
 
 // buildRequest wraps a single item back into an OTLP export request, shifting
-// its embedded timestamps by delta nanoseconds when rewriting time.
-func buildRequest(it Item, delta int64) *coltracepb.ExportTraceServiceRequest {
+// its embedded timestamps by delta nanoseconds when rewriting time and mapping
+// its IDs through ids when that is non-nil. The recorded span is never mutated.
+func buildRequest(it Item, delta int64, ids *IDMap) *coltracepb.ExportTraceServiceRequest {
 	sp := it.Span
+	if delta != 0 || ids != nil {
+		sp = proto.Clone(sp).(*tracepb.Span)
+	}
 	if delta != 0 {
-		sp = shiftSpan(sp, delta)
+		shiftSpan(sp, delta)
+	}
+	if ids != nil {
+		ids.apply(sp)
 	}
 	return &coltracepb.ExportTraceServiceRequest{
 		ResourceSpans: []*tracepb.ResourceSpans{{
@@ -106,8 +121,8 @@ func buildRequest(it Item, delta int64) *coltracepb.ExportTraceServiceRequest {
 	}
 }
 
-func shiftSpan(sp *tracepb.Span, delta int64) *tracepb.Span {
-	c := proto.Clone(sp).(*tracepb.Span)
+// shiftSpan moves the timestamps of sp in place. sp must be a private copy.
+func shiftSpan(c *tracepb.Span, delta int64) {
 	if c.StartTimeUnixNano > 0 {
 		c.StartTimeUnixNano = uint64(int64(c.StartTimeUnixNano) + delta)
 	}
@@ -119,5 +134,4 @@ func shiftSpan(sp *tracepb.Span, delta int64) *tracepb.Span {
 			e.TimeUnixNano = uint64(int64(e.TimeUnixNano) + delta)
 		}
 	}
-	return c
 }
