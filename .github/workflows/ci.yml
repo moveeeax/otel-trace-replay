@@ -45,6 +45,11 @@ jobs:
           out=$(/tmp/otel-trace-replay --file examples/trace.json --dry-run)
           echo "$out"
           echo "$out" | grep -q "loaded 3 span" || { echo "unexpected dry-run output"; exit 1; }
+      - name: Diff the example baseline against the slower candidate
+        run: |
+          out=$(/tmp/otel-trace-replay diff --baseline examples/trace.json --candidate examples/trace-slow.json --min-delta 25ms)
+          echo "$out"
+          echo "$out" | grep -q "+380ms.*slower.*POST /checkout > charge-card" || { echo "unexpected diff output"; exit 1; }
       - name: Emit a burst to a closed port and expect a clean export error
         run: |
           set +e
